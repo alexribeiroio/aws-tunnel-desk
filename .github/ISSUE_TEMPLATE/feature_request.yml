@@ -1,0 +1,47 @@
+name: Feature request
+description: Propose a user-facing improvement that is not specific to a new AWS resource.
+title: "[Feature]: "
+labels: ["enhancement", "needs-triage"]
+body:
+  - type: checkboxes
+    id: prerequisites
+    attributes:
+      label: Prerequisites
+      options:
+        - label: I searched existing issues and discussions for this request.
+          required: true
+        - label: This request does not require AWS Tunnel Desk to collect or reveal credentials or secret values.
+          required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem to solve
+      description: Explain the workflow and who experiences the problem.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed experience
+      description: Describe the expected behavior without prescribing implementation unless necessary.
+    validations:
+      required: true
+  - type: textarea
+    id: security
+    attributes:
+      label: Security and privacy impact
+      description: Explain changes to IAM, process execution, persistence, network exposure, or sensitive data handling.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+  - type: dropdown
+    id: platforms
+    attributes:
+      label: Affected platforms
+      multiple: true
+      options: [Windows native, WSL1, WSL2, macOS, Linux, All platforms]
+    validations:
+      required: true

@@ -1,0 +1,31 @@
+name: Documentation improvement
+description: Report missing, incorrect, confusing, or inaccessible documentation.
+title: "[Docs]: "
+labels: ["documentation"]
+body:
+  - type: input
+    id: location
+    attributes:
+      label: Document or screen
+      placeholder: README.md Runtime requirements
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: What is unclear or incorrect?
+    validations:
+      required: true
+  - type: textarea
+    id: change
+    attributes:
+      label: Suggested improvement
+    validations:
+      required: true
+  - type: dropdown
+    id: language
+    attributes:
+      label: Language
+      options: [English source, Portuguese translation, Spanish translation, Not language-specific]
+    validations:
+      required: true

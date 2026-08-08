@@ -1,0 +1,73 @@
+name: Bug report
+description: Report reproducible behavior that differs from the documented or expected result.
+title: "[Bug]: "
+labels: ["bug", "needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for reporting a bug. Remove credentials, account IDs, private endpoints, and customer data from every field and attachment. Security vulnerabilities must be reported privately through the Security tab.
+  - type: checkboxes
+    id: prerequisites
+    attributes:
+      label: Prerequisites
+      options:
+        - label: I searched existing issues and did not find a duplicate.
+          required: true
+        - label: This report does not disclose a security vulnerability or sensitive data.
+          required: true
+  - type: input
+    id: version
+    attributes:
+      label: AWS Tunnel Desk version
+      placeholder: 0.1.0 or commit SHA
+    validations:
+      required: true
+  - type: dropdown
+    id: operating-system
+    attributes:
+      label: Operating system
+      options: [Windows, Windows with WSL1, Windows with WSL2, macOS, Debian or Ubuntu, Fedora or RHEL compatible, Other Linux]
+    validations:
+      required: true
+  - type: input
+    id: os-version
+    attributes:
+      label: Operating-system version and architecture
+      placeholder: Windows 11 x86-64, macOS 15 arm64, Ubuntu 24.04 x86-64
+    validations:
+      required: true
+  - type: textarea
+    id: description
+    attributes:
+      label: Problem
+      description: Describe what happened and the user impact.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Reproduction steps
+      placeholder: |
+        1. Select a synthetic profile...
+        2. Approve a resource...
+        3. Observe...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: diagnostics
+    attributes:
+      label: Sanitized diagnostics
+      description: Include relevant app output and dependency versions. Redact all AWS identifiers and private hosts.
+      render: shell
+  - type: textarea
+    id: additional-context
+    attributes:
+      label: Additional context
+      description: Add synthetic screenshots or other context.

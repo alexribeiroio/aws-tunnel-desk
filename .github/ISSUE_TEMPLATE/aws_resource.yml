@@ -1,0 +1,64 @@
+name: AWS resource support
+description: Propose discovery and tunneling support for another AWS resource or SSM connection mode.
+title: "[AWS resource]: "
+labels: ["aws-resource", "enhancement", "needs-design"]
+body:
+  - type: input
+    id: resource
+    attributes:
+      label: AWS service and resource
+      placeholder: Amazon Redshift provisioned cluster
+    validations:
+      required: true
+  - type: textarea
+    id: workflow
+    attributes:
+      label: User workflow
+      description: Explain why a local tunnel is needed and which client connects through it.
+    validations:
+      required: true
+  - type: textarea
+    id: discovery
+    attributes:
+      label: Read-only discovery APIs
+      description: List the AWS APIs and fields that can derive the remote host, port, network, and compatible SSM target without manual input.
+    validations:
+      required: true
+  - type: textarea
+    id: iam
+    attributes:
+      label: Minimum IAM permissions
+      description: Separate discovery permissions from ssm:StartSession.
+    validations:
+      required: true
+  - type: input
+    id: document
+    attributes:
+      label: Session Manager document or connection mode
+      placeholder: AWS-StartPortForwardingSessionToRemoteHost
+    validations:
+      required: true
+  - type: textarea
+    id: network
+    attributes:
+      label: Network and security assumptions
+    validations:
+      required: true
+  - type: textarea
+    id: references
+    attributes:
+      label: AWS documentation
+      description: Link to primary AWS documentation supporting the design.
+    validations:
+      required: true
+  - type: checkboxes
+    id: boundaries
+    attributes:
+      label: Security boundaries
+      options:
+        - label: Discovery can remain read-only.
+          required: true
+        - label: The destination can be derived without accepting an arbitrary host or command.
+          required: true
+        - label: No credential or Secrets Manager value needs to be read.
+          required: true
