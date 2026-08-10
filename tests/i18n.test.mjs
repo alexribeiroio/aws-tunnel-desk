@@ -22,3 +22,10 @@ test("translates dynamic source phrases", () => {
 test("preserves surrounding whitespace", () => {
   assert.equal(translateText("pt", "  Settings  "), "  Configurações  ");
 });
+
+test("translates account setup and profile detail language", () => {
+  assert.equal(translateText("pt", "AWS account overview"), "Visão geral da conta AWS");
+  assert.equal(translateText("es", "Access setup"), "Configuración de acceso");
+  assert.equal(translateText("pt", "2 of 3 profiles connected"), "2 de 3 perfis conectados");
+  assert.equal(translateText("es", "1 profile(s) found for this account."), "1 perfil(es) encontrado(s) para esta cuenta.");
+});

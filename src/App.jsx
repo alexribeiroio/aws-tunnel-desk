@@ -102,7 +102,58 @@ function environmentGuide(runtime, runner) {
   };
 }
 function SidebarItem({ icon: Icon, children, active, onClick }) {
-  return <motion.button className={`side-nav-item ${active ? "active" : ""}`} onClick={onClick} whileHover={{ x: 4 }} whileTap={{ scale: .97 }} transition={{ type: "spring", stiffness: 420, damping: 28 }}><Icon size={20} weight={active ? "fill" : "regular"} /><span>{children}</span></motion.button>;
+  return <motion.button className={`side-nav-item ${active ? "active" : ""}`} onClick={onClick} title={children} whileHover={{ x: 4 }} whileTap={{ scale: .97 }} transition={{ type: "spring", stiffness: 420, damping: 28 }}><Icon size={20} weight={active ? "fill" : "regular"} /><span>{children}</span></motion.button>;
+}
+
+function profileStatusLabel(status) {
+  if (status === "connected") return "Connected";
+  if (status === "expired") return "Session expired";
+  if (status === "unavailable") return "Unavailable";
+  return "Not checked";
+}
+
+function AccountProfileWorkspace({ account, detailMode, selectedProfile, destinations, activeTunnelId, loading, loginProfile, locale, onSelectProfile, onRefresh, onLogin, onApprove, onViewTunnel }) {
+  const profiles = account?.profiles || [];
+  const connectedProfiles = profiles.filter((profile) => profile.status === "connected");
+  const accountDestinations = destinations.filter((destination) => profiles.some((profile) => profile.name === destination.profile));
+  const focusedProfile = detailMode === "profile" && profiles.some((profile) => profile.name === selectedProfile?.name) ? selectedProfile : null;
+  const profileDestinations = focusedProfile ? accountDestinations.filter((destination) => destination.profile === focusedProfile.name) : [];
+  const title = focusedProfile?.name || (account?.accountId ? `AWS account ${account.accountId}` : "Account not identified yet");
+  const configuredCommand = focusedProfile ? `aws configure sso --profile ${focusedProfile.name}` : "aws configure sso";
+  const loginCommand = focusedProfile ? `aws sso login --profile ${focusedProfile.name}` : "aws sso login --profile <profile>";
+  const verifyCommand = focusedProfile ? `aws sts get-caller-identity --profile ${focusedProfile.name}` : "aws sts get-caller-identity --profile <profile>";
+
+  return localizeNode(<>
+    <header className="workspace-header section-page-header account-workspace-header">
+      <div className="eyebrow"><span>→</span> {focusedProfile ? "Profile details" : "AWS account overview"}</div>
+      <div className="header-line"><div className="header-copy"><h1>{title}</h1><p><UsersThree size={16} /> {focusedProfile ? `${focusedProfile.auth} · ${focusedProfile.region}` : "Select a profile below to inspect authentication and setup."}</p></div>{activeTunnelId && <button className="secondary-action active-tunnel-link" onClick={onViewTunnel}><PlugsConnected size={17} /> View active tunnel</button>}<button className="secondary-action" onClick={onRefresh} disabled={loading}><LoadingLabel active={loading} loadingText="Checking"><ArrowsClockwise size={18} /> Check sessions</LoadingLabel></button></div>
+    </header>
+    <div className="content-scroll account-workspace-content">
+      <section className="account-overview-card">
+        <div className="account-overview-heading"><div className={`account-orbit ${connectedProfiles.length ? "connected" : "attention"}`}><Cloud size={28} weight="duotone" /><span /></div><div><small>{focusedProfile ? "SELECTED PROFILE" : "SELECTED ACCOUNT"}</small><h2>{focusedProfile ? profileStatusLabel(focusedProfile.status) : `${connectedProfiles.length} of ${profiles.length} profiles connected`}</h2><p>{focusedProfile ? "Use the actions and commands below to configure or restore this AWS CLI profile." : "This account groups AWS CLI profiles that resolved to the same AWS account identity."}</p></div></div>
+        <div className="account-metrics"><div><small>ACCOUNT ID</small><strong>{account?.accountId || "Not identified"}</strong></div><div><small>PROFILES</small><strong>{profiles.length}</strong></div><div><small>APPROVED RESOURCES</small><strong>{accountDestinations.length}</strong></div></div>
+      </section>
+
+      <section className="setup-path-card">
+        <div className="section-title"><h2>Access setup</h2><span>Follow these steps in order</span></div>
+        <div className="setup-path">
+          <article className="setup-step ready"><span>1</span><div><small>PROFILE</small><strong>AWS CLI profile configured</strong><p>{profiles.length ? `${profiles.length} profile(s) found for this account.` : "Create the first AWS CLI SSO profile."}</p></div><CheckCircle size={22} weight="fill" /></article>
+          <article className={`setup-step ${connectedProfiles.length ? "ready" : "attention"}`}><span>2</span><div><small>AUTHENTICATION</small><strong>{connectedProfiles.length ? "AWS session available" : "Authentication required"}</strong><p>{connectedProfiles.length ? "At least one profile can call AWS now." : "Connect an SSO profile and check the session again."}</p></div>{connectedProfiles.length ? <CheckCircle size={22} weight="fill" /> : <WarningCircle size={22} weight="fill" />}</article>
+          <article className={`setup-step ${accountDestinations.length ? "ready" : "next"}`}><span>3</span><div><small>RESOURCE ACCESS</small><strong>{accountDestinations.length ? "Resources approved locally" : "Approve the first resource"}</strong><p>{accountDestinations.length ? `${accountDestinations.length} resource(s) ready for tunnel selection.` : "Discover RDS, EC2, or managed nodes using a connected profile."}</p></div>{accountDestinations.length ? <CheckCircle size={22} weight="fill" /> : <PlayCircle size={22} weight="fill" />}</article>
+        </div>
+      </section>
+
+      <div className="account-detail-grid">
+        <section className="profile-picker-card"><div className="section-title"><h2>Profiles in this account</h2><span>{profiles.length} found</span></div><div className="account-profile-list">{profiles.map((profile) => <button type="button" key={profile.name} className={focusedProfile?.name === profile.name ? "selected" : ""} onClick={() => onSelectProfile(profile)}><StatusDot status={profile.status} /><span><strong>{profile.name}</strong><small>{profile.auth} · {profile.region}</small></span><span className={`profile-status ${profile.status}`}>{profileStatusLabel(profile.status)}</span><ArrowSquareOut size={16} /></button>)}</div></section>
+        <section className="profile-detail-card">{focusedProfile ? <><div className="profile-detail-head"><div><small>PROFILE CONFIGURATION</small><h2>{focusedProfile.name}</h2></div><span className={`profile-status ${focusedProfile.status}`}>{profileStatusLabel(focusedProfile.status)}</span></div><dl><div><dt>Authentication</dt><dd>{focusedProfile.auth}</dd></div><div><dt>Region</dt><dd>{focusedProfile.region || "Not configured"}</dd></div><div><dt>Account</dt><dd>{focusedProfile.accountId || "Not identified"}</dd></div><div><dt>Approved resources</dt><dd>{profileDestinations.length}</dd></div></dl><div className="profile-actions">{focusedProfile.auth === "SSO" && <button className="secondary-action" onClick={() => onLogin(focusedProfile)} disabled={Boolean(loginProfile)}><LoadingLabel active={loginProfile === focusedProfile.name} loadingText="Opening SSO">{focusedProfile.status === "connected" ? "Reauthenticate" : "Connect SSO"}</LoadingLabel></button>}<button className="approve-button" onClick={onApprove} disabled={focusedProfile.status !== "connected"}><ShieldCheck size={17} /> Discover and approve resource</button></div><div className="command-stack"><CommandRow locale={locale} label="Configure profile" command={configuredCommand} /><CommandRow locale={locale} label="Connect SSO" command={loginCommand} /><CommandRow locale={locale} label="Verify identity" command={verifyCommand} /></div></> : <div className="profile-detail-empty"><UsersThree size={34} weight="duotone" /><strong>Select a profile</strong><p>Choose a profile from this account to see its Region, authentication status, approved resources, and setup commands.</p></div>}</section>
+      </div>
+    </div>
+  </>, locale);
+}
+
+function CommandRow({ locale, label, command }) {
+  const translatedLabel = translateText(locale, label);
+  return <div className="profile-command"><span>{translatedLabel}</span><code>{command}</code><button type="button" onClick={() => copyText(command)} aria-label={`${translateText(locale, "Copy command for")} ${translatedLabel}`}><Copy size={16} /></button></div>;
 }
 
 export function App() {
@@ -144,6 +195,8 @@ export function App() {
   const [portReady, setPortReady] = useState(false);
   const [collapsedAccounts, setCollapsedAccounts] = useState(() => new Set());
   const [destinationView, setDestinationView] = useState(getInitialDestinationView);
+  const [selectedAccountKey, setSelectedAccountKey] = useState(null);
+  const [profileDetailMode, setProfileDetailMode] = useState("account");
 
   const visibleProfiles = useMemo(() => profiles.filter((profile) => profile.name.toLowerCase().includes(search.toLowerCase())), [profiles, search]);
   const profileGroups = useMemo(() => {
@@ -159,6 +212,15 @@ export function App() {
       return left.accountId.localeCompare(right.accountId);
     });
   }, [visibleProfiles]);
+  const selectedAccount = useMemo(() => {
+    const currentProfile = profiles.find((profile) => profile.name === selectedProfile?.name) || selectedProfile;
+    const fallbackKey = currentProfile?.accountId || (currentProfile ? "unidentified" : null);
+    const selectedKeyStillExists = profiles.some((profile) => (profile.accountId || "unidentified") === selectedAccountKey);
+    const key = selectedKeyStillExists ? selectedAccountKey : fallbackKey;
+    if (!key) return null;
+    const accountProfiles = profiles.filter((profile) => (profile.accountId || "unidentified") === key);
+    return accountProfiles.length ? { key, accountId: key === "unidentified" ? null : key, profiles: accountProfiles } : null;
+  }, [profiles, selectedAccountKey, selectedProfile]);
   const destination = selectedDestination;
   const discoveredResources = useMemo(() => [
     ...discovery.rdsEndpoints.map((item) => ({ ...item, resourceType: "rds", connectionMode: "remote_host", host: item.endpoint, remotePort: item.dbPort })),
@@ -186,6 +248,11 @@ export function App() {
   useEffect(() => {
     localStorage.setItem("aws-tunnel-desk.destination-view", destinationView);
   }, [destinationView]);
+
+  useEffect(() => {
+    const content = appRoot.current?.querySelector(".content-scroll");
+    content?.scrollTo({ top: 0, behavior: "auto" });
+  }, [activeSection, profileDetailMode, selectedAccountKey, selectedProfile?.name]);
 
   useEffect(() => {
     if (reducedMotion || initializing || !appRoot.current) return undefined;
@@ -232,6 +299,20 @@ export function App() {
       else next.add(accountKey);
       return next;
     });
+  }
+
+  function openAccount(group) {
+    setSelectedAccountKey(group.key);
+    setSelectedProfile((current) => group.profiles.some((profile) => profile.name === current?.name) ? current : group.profiles[0] || null);
+    setProfileDetailMode("account");
+    setActiveSection("profiles");
+  }
+
+  function openProfile(profile) {
+    setSelectedProfile(profile);
+    setSelectedAccountKey(profile.accountId || "unidentified");
+    setProfileDetailMode("profile");
+    setActiveSection("profiles");
   }
 
   async function loadInitialState() {
@@ -558,7 +639,7 @@ export function App() {
     <section className="profiles-panel">
       <div className="panel-heading"><span>AWS PROFILES</span><button className="icon-button refresh-button" onClick={refresh} aria-label={loading ? "Refreshing profiles" : "Refresh profiles"} aria-busy={loading} disabled={loading}><ArrowsClockwise className={loading ? "refresh-icon spinning" : "refresh-icon"} size={18} /></button></div>
       <label className="search-field"><ListMagnifyingGlass size={18} /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Filter profiles..." /></label>
-      <div className="profile-list">{profileGroups.map((group) => { const collapsed = collapsedAccounts.has(group.key) && !search.trim(); return <section className="account-group" key={group.key}><button type="button" className="account-group-header" onClick={() => toggleAccount(group.key)} aria-expanded={!collapsed}><StatusDot status={accountStatus(group.profiles)} /><span><strong>{group.accountId ? `AWS account ${group.accountId}` : "Account not identified yet"}</strong><small>{group.profiles.length} profile(s) · {group.profiles.filter((profile) => profile.status === "connected").length} connected</small></span><CaretDown size={15} className={collapsed ? "account-caret collapsed" : "account-caret"} /></button>{!collapsed && <div className="account-profiles">{group.profiles.map((profile) => <button key={profile.name} onClick={() => setSelectedProfile(profile)} className={`profile-row ${selectedProfile?.name === profile.name ? "selected" : ""}`}><StatusDot status={profile.status} /><span><strong>{profile.name}</strong><small>{profile.auth} · {profile.region}</small></span><CaretDown size={15} className="profile-caret" /></button>)}</div>}</section>; })}{!loading && !visibleProfiles.length && <div className="empty-panel">{profiles.length ? "No profile matches the filter." : "No profile configured."}</div>}</div>
+      <div className="profile-list">{profileGroups.map((group) => { const collapsed = collapsedAccounts.has(group.key) && !search.trim(); const accountSelected = activeSection === "profiles" && selectedAccount?.key === group.key; return <section className={`account-group ${accountSelected ? "selected" : ""}`} key={group.key}><div className={`account-group-header ${accountSelected ? "selected" : ""}`}><button type="button" className="account-group-select" onClick={() => openAccount(group)}><StatusDot status={accountStatus(group.profiles)} /><span><strong>{group.accountId ? `AWS account ${group.accountId}` : "Account not identified yet"}</strong><small>{group.profiles.length} profile(s) · {group.profiles.filter((profile) => profile.status === "connected").length} connected</small></span></button><button type="button" className="account-group-toggle" onClick={() => toggleAccount(group.key)} aria-label={collapsed ? "Expand account" : "Collapse account"} aria-expanded={!collapsed}><CaretDown size={15} className={collapsed ? "account-caret collapsed" : "account-caret"} /></button></div>{!collapsed && <div className="account-profiles">{group.profiles.map((profile) => <button key={profile.name} onClick={() => openProfile(profile)} className={`profile-row ${activeSection === "profiles" && profileDetailMode === "profile" && selectedProfile?.name === profile.name ? "selected" : ""}`}><StatusDot status={profile.status} /><span><strong>{profile.name}</strong><small>{profile.auth} · {profile.region}</small></span><ArrowSquareOut size={15} className="profile-caret" /></button>)}</div>}</section>; })}{!loading && !visibleProfiles.length && <div className="empty-panel">{profiles.length ? "No profile matches the filter." : "No profile configured."}</div>}</div>
       <motion.button className="approved-dock" onClick={() => setActiveSection("destinations")} whileHover={{ x: 3, scale: 1.01 }} whileTap={{ scale: .97 }} transition={{ type: "spring", stiffness: 380, damping: 26 }}><span className="approved-dock-icon"><ShieldCheck size={18} weight="duotone" /></span><span><strong>Approved destinations</strong><small>{approvedDestinations.length} total · {activeDestinationId ? 1 : 0} connected(s)</small></span><CaretDown size={15} /></motion.button>
       <button className="new-tunnel" onClick={openApproval} disabled={!selectedProfile || discoveryLoading}><LoadingLabel active={discoveryLoading} loadingText="Discovering resources"><PlugsConnected size={18} /> Approve resource</LoadingLabel></button>
     </section>
@@ -570,7 +651,8 @@ export function App() {
 
       {activeSection === "history" && <><header className="workspace-header section-page-header"><div className="eyebrow"><span>→</span> Local audit</div><div className="header-line"><div><h1>Persistent history</h1><p><ClipboardText size={16} /> Events stored only on this computer, up to 200 records.</p></div><div className="metric-chip"><strong>{events.length}</strong><small>events</small></div></div></header><div className="content-scroll"><section className="connection-panel"><div className="section-title"><h2>Timeline</h2><span>Newest first</span></div><div className="activity-list full-history">{events.map((item) => <div className="activity-row" key={item.id}><time>{item.time}</time><StatusDot status={item.status === "success" ? "connected" : item.status === "error" ? "unavailable" : "info"} /><strong>{item.action}</strong><span>{item.detail}</span></div>)}{!events.length && <div className="empty-activity">There are no persistent events yet.</div>}</div></section></div></>}
 
-      {activeSection === "profiles" && <><header className="workspace-header section-page-header"><div className="eyebrow"><span>→</span> AWS authentication</div><div className="header-line"><div><h1>SSO profiles</h1><p><UsersThree size={16} /> Check and reconnect profiles configured in AWS CLI.</p></div><button className="secondary-action" onClick={refresh} disabled={loading}><LoadingLabel active={loading} loadingText="Checking"><ArrowsClockwise size={18} /> Check sessions</LoadingLabel></button></div></header><div className="content-scroll"><section className="connection-panel profile-management"><div className="section-title"><h2>Configured profiles</h2><span>{profiles.length} found</span></div>{profiles.map((profile) => <div className="managed-profile" key={profile.name}><StatusDot status={profile.status} /><div><strong>{profile.name}</strong><span>{profile.auth} · {profile.region}{profile.accountId ? ` · account ${profile.accountId}` : ""}</span></div><span className={`profile-status ${profile.status}`}>{profile.status === "connected" ? "Connected" : profile.status === "expired" ? "Session expired" : profile.status === "unavailable" ? "Unavailable" : "Not checked"}</span>{profile.auth === "SSO" && <button className="secondary-action compact" onClick={() => startSsoLogin(profile)} disabled={Boolean(loginProfile)}><LoadingLabel active={loginProfile === profile.name} loadingText="Opening SSO">{profile.status === "connected" ? "Reauthenticate" : "Connect SSO"}</LoadingLabel></button>}</div>)}</section></div></>}
+      {activeSection === "profiles" && selectedAccount && <AccountProfileWorkspace account={selectedAccount} detailMode={profileDetailMode} selectedProfile={selectedProfile} destinations={approvedDestinations} activeTunnelId={activeTunnelId} loading={loading} loginProfile={loginProfile} locale={locale} onSelectProfile={openProfile} onRefresh={refresh} onLogin={startSsoLogin} onApprove={openApproval} onViewTunnel={() => setActiveSection("tunnels")} />}
+      {activeSection === "profiles" && !selectedAccount && <><header className="workspace-header section-page-header"><div className="eyebrow"><span>→</span> AWS authentication</div><div className="header-line"><div className="header-copy"><h1>Configure AWS access</h1><p><UsersThree size={16} /> Add an AWS CLI profile, authenticate it, and then approve a resource.</p></div><button className="secondary-action" onClick={refresh} disabled={loading}><LoadingLabel active={loading} loadingText="Checking"><ArrowsClockwise size={18} /> Check sessions</LoadingLabel></button></div></header><div className="content-scroll"><section className="setup-path-card empty-account-setup"><div className="section-title"><h2>Start here</h2><span>Three steps</span></div><div className="setup-path"><article className="setup-step next"><span>1</span><div><small>PROFILE</small><strong>Configure AWS CLI</strong><p>Run `aws configure sso` in a terminal and return here.</p></div><TerminalWindow size={22} /></article><article className="setup-step"><span>2</span><div><small>AUTHENTICATION</small><strong>Connect the SSO session</strong><p>Use the profile action to open AWS authentication.</p></div><UsersThree size={22} /></article><article className="setup-step"><span>3</span><div><small>RESOURCE ACCESS</small><strong>Approve a resource</strong><p>Discover visible RDS, EC2, and managed nodes.</p></div><ShieldCheck size={22} /></article></div><div className="profile-command standalone"><span>Configure the first profile</span><code>aws configure sso</code><button type="button" onClick={() => copyText("aws configure sso")} aria-label="Copy AWS configure SSO command"><Copy size={16} /></button></div></section></div></>}
 
       {activeSection === "settings" && <><header className="workspace-header section-page-header"><div className="eyebrow"><span>→</span> Local environment</div><div className="header-line"><div className="header-copy"><h1>Settings</h1><p><GearSix size={16} /> Dependencies, runner, and data persisted on this computer.</p></div><button className="secondary-action" onClick={loadInitialState} disabled={loading}><LoadingLabel active={loading} loadingText="Refreshing"><ArrowsClockwise size={18} /> Refresh diagnostics</LoadingLabel></button></div></header><div className="content-scroll"><div className="settings-grid"><section className="settings-card"><small>PLATFORM</small><strong>{runtime.platform || "Detecting…"}</strong><span>{isWindows ? "Windows with native and WSL runner support." : "AWS CLI runs directly on the system."}</span></section><section className="settings-card"><small>AWS CLI</small><strong>{runtime.awsCli ? "Available" : "Not found"}</strong><span>Required for SSO, resource discovery, and SSM sessions.</span></section><section className={`settings-card ${pluginMissing ? "warning" : ""}`}><small>SESSION MANAGER</small><strong>{runtime.sessionManagerPlugin ? "Available" : "Not found"}</strong><span>{runtime.sessionManagerPlugin ? "Ready to start SSM sessions through AWS CLI." : "The check runs at startup. Installation proceeds only with consent and system authentication."}</span>{pluginMissing && <button className="secondary-action dependency-action" onClick={installSessionManagerPlugin} disabled={installingPlugin}><LoadingLabel active={installingPlugin} loadingText="Installing"><DownloadSimple size={17} /> Install component</LoadingLabel></button>}</section><section className="settings-card"><small>LOCAL PORT</small><strong>{port}</strong><span>Automatically selected in the 15432–15531 range.</span></section><section className="settings-card"><small>LOCAL HISTORY</small><strong>{events.length} event(s)</strong><span>Stored only on this computer, limited to the 200 most recent records.</span></section><section className="settings-card danger"><small>RESET ZONE</small><strong>Start over</strong><span>Closes tunnels and removes approved destinations and history. AWS CLI profiles are not changed.</span><button className="danger-action" onClick={() => setResetOpen(true)}><Trash size={17} /> Clear local data</button></section>{isWindows && <section className="settings-card wide"><small>WINDOWS RUNNER</small><div className="runner-select settings-runner"><select value={runner} onChange={(event) => chooseRunner(event.target.value)} disabled={runnerLoading}><option value="native">Native Windows</option>{runtime.wsl?.map((item) => <option key={item.name} value={item.name}>{item.name} · WSL{item.version}</option>)}</select><CaretDown size={16} /></div><span>{runnerLoading ? <><LoadingOrb size="small" /> Validating dependencies and an available port…</> : "CLI and Session Manager Plugin must exist in the selected runner."}</span></section>}</div></div></>}
 
