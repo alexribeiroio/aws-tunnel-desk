@@ -72,14 +72,26 @@ jobs:
             platform: ubuntu-22.04
             args: --bundles deb,rpm,appimage
             rust_targets: ""
+          - label: Linux ARM64
+            platform: ubuntu-24.04-arm
+            args: --bundles deb,rpm,appimage
+            rust_targets: ""
           - label: Windows x86-64
             platform: windows-latest
             args: --bundles msi
             rust_targets: ""
-          - label: macOS universal
+          - label: Windows ARM64
+            platform: windows-11-arm
+            args: --target aarch64-pc-windows-msvc --bundles msi
+            rust_targets: aarch64-pc-windows-msvc
+          - label: macOS Intel
+            platform: macos-13
+            args: --target x86_64-apple-darwin --bundles dmg
+            rust_targets: x86_64-apple-darwin
+          - label: macOS Apple Silicon
             platform: macos-14
-            args: --target universal-apple-darwin --bundles dmg
-            rust_targets: aarch64-apple-darwin,x86_64-apple-darwin
+            args: --target aarch64-apple-darwin --bundles dmg
+            rust_targets: aarch64-apple-darwin
 
     runs-on: ${{ matrix.platform }}
     timeout-minutes: 60
@@ -101,7 +113,7 @@ jobs:
           targets: ${{ matrix.rust_targets }}
 
       - name: Install Linux packaging dependencies
-        if: matrix.platform == 'ubuntu-22.04'
+        if: startsWith(matrix.platform, 'ubuntu-')
         run: |
           sudo apt-get update
           sudo apt-get install --yes libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf rpm
