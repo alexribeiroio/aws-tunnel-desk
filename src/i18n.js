@@ -263,8 +263,6 @@ const phrases = {
   "Disconnected": ["Desconectado","Desconectado"],
   "View tunnel": ["Ver túnel","Ver túnel"],
   "Connect": ["Conectar","Conectar"],
-  "Close the connected tunnel before selecting another destination.": ["Encerre o túnel conectado antes de selecionar outro destino.","Cierre el túnel conectado antes de seleccionar otro destino."],
-  "Close the connected tunnel before approving another destination.": ["Encerre o túnel conectado antes de aprovar outro destino.","Cierre el túnel conectado antes de aprobar otro destino."],
   "Profile details": ["Detalhes do perfil","Detalles del perfil"],
   "AWS account overview": ["Visão geral da conta AWS","Resumen de la cuenta de AWS"],
   "Select a profile below to inspect authentication and setup.": ["Selecione um perfil abaixo para verificar a autenticação e a configuração.","Seleccione un perfil para revisar la autenticación y la configuración."],

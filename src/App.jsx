@@ -65,17 +65,17 @@ function getInitialDestinationView() {
   const saved = globalThis.localStorage?.getItem("aws-tunnel-desk.destination-view");
   return saved === "list" ? "list" : "cards";
 }
-function destinationStatus(destination, activeDestinationId, profiles) {
-  if (destination.id === activeDestinationId) return "connected";
+function destinationStatus(destination, activeTunnels, profiles) {
+  if (activeTunnels[destination.id]) return "connected";
   const profile = profiles.find((item) => item.name === destination.profile);
   return profile?.status === "connected" ? "disconnected" : "auth";
 }
-function DestinationLibrary({ destinations, activeDestinationId, profiles, viewMode, onViewMode, onOpen, onApprove }) {
-  const connectedCount = destinations.filter((item) => item.id === activeDestinationId).length;
+function DestinationLibrary({ destinations, activeTunnels, profiles, viewMode, onViewMode, onOpen, onApprove }) {
+  const connectedCount = Object.keys(activeTunnels).length;
   const reducedMotion = useReducedMotion();
   return <motion.div className="destination-library-shell" initial={reducedMotion ? false : { opacity: 0 }} animate={{ opacity: 1 }}>
     <motion.div className="destination-toolbar" initial={reducedMotion ? false : { opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: .32 }}><div><strong>{destinations.length} destination(s)</strong><span><i className="status-signal connected" /> {connectedCount} connected</span></div><div className="destination-toolbar-actions"><div className="view-switch" role="group" aria-label="Destination view"><motion.button className={viewMode === "list" ? "active" : ""} onClick={() => onViewMode("list")} aria-label="Show as list" whileTap={{ scale: .82 }}><ListBullets size={18} /></motion.button><motion.button className={viewMode === "cards" ? "active" : ""} onClick={() => onViewMode("cards")} aria-label="Show as cards" whileTap={{ scale: .82 }}><SquaresFour size={18} /></motion.button></div><motion.button className="secondary-action" onClick={onApprove} whileHover={{ y: -2 }} whileTap={{ scale: .96 }}><ShieldCheck size={17} /> Approve resource</motion.button></div></motion.div>
-    <AnimatePresence mode="popLayout" initial={!reducedMotion}>{!destinations.length ? <motion.div key="empty" className="destination-empty" initial={{ opacity: 0, scale: .96 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: .96 }}><motion.div animate={reducedMotion ? {} : { y: [0, -7, 0], rotate: [0, -4, 4, 0] }} transition={{ duration: 2.8, repeat: Infinity, repeatDelay: 1 }}><ShieldCheck size={34} weight="duotone" /></motion.div><strong>No approved destination</strong><span>Choose an AWS profile and approve the first resource to get started.</span><motion.button className="secondary-action" onClick={onApprove} whileHover={{ scale: 1.03 }} whileTap={{ scale: .96 }}>Approve first resource</motion.button></motion.div> : <motion.div layout className={`destination-library ${viewMode}`} key="library"><AnimatePresence mode="popLayout">{destinations.map((item, index) => { const status = destinationStatus(item, activeDestinationId, profiles); const statusLabel = status === "connected" ? "Connected" : status === "auth" ? "Authentication required" : "Disconnected"; const type = item.resourceType === "ec2" ? "EC2" : item.resourceType === "managed_node" ? "Managed node" : "RDS"; return <motion.article layout className={`destination-item ${status} ${item.id === activeDestinationId ? "active" : ""}`} key={item.id} initial={reducedMotion ? false : { opacity: 0, y: 18, rotateX: -5 }} animate={{ opacity: 1, y: 0, rotateX: 0 }} exit={{ opacity: 0, scale: .94 }} transition={{ layout: { type: "spring", stiffness: 330, damping: 30 }, delay: reducedMotion ? 0 : Math.min(index * .045, .25) }} whileHover={reducedMotion ? {} : { y: -4, rotateX: 1 }} whileTap={{ scale: .985 }}>{status === "connected" && <span className="connection-sparks" aria-hidden="true"><i /><i /><i /></span>}<button className="destination-main" onClick={() => onOpen(item)}><motion.div className="destination-icon" animate={status === "connected" && !reducedMotion ? { boxShadow: ["0 0 0 rgba(67,220,141,0)", "0 0 22px rgba(67,220,141,.22)", "0 0 0 rgba(67,220,141,0)"] } : {}} transition={{ duration: 2.2, repeat: Infinity }} >{item.resourceType === "rds" ? <Database size={22} weight="duotone" /> : <DesktopTower size={22} weight="duotone" />}</motion.div><div className="destination-copy"><div><strong>{item.label}</strong><span className={`connection-state ${status}`}><i />{statusLabel}</span></div><p>{item.endpoint}:{item.dbPort}</p><small>{type} · {item.profile} · {item.region}</small></div><span className="destination-open">{status === "connected" ? "View tunnel" : "Connect"}<ArrowSquareOut size={15} /></span></button></motion.article>; })}</AnimatePresence></motion.div>}</AnimatePresence>
+    <AnimatePresence mode="popLayout" initial={!reducedMotion}>{!destinations.length ? <motion.div key="empty" className="destination-empty" initial={{ opacity: 0, scale: .96 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: .96 }}><motion.div animate={reducedMotion ? {} : { y: [0, -7, 0], rotate: [0, -4, 4, 0] }} transition={{ duration: 2.8, repeat: Infinity, repeatDelay: 1 }}><ShieldCheck size={34} weight="duotone" /></motion.div><strong>No approved destination</strong><span>Choose an AWS profile and approve the first resource to get started.</span><motion.button className="secondary-action" onClick={onApprove} whileHover={{ scale: 1.03 }} whileTap={{ scale: .96 }}>Approve first resource</motion.button></motion.div> : <motion.div layout className={`destination-library ${viewMode}`} key="library"><AnimatePresence mode="popLayout">{destinations.map((item, index) => { const status = destinationStatus(item, activeTunnels, profiles); const statusLabel = status === "connected" ? "Connected" : status === "auth" ? "Authentication required" : "Disconnected"; const type = item.resourceType === "ec2" ? "EC2" : item.resourceType === "managed_node" ? "Managed node" : "RDS"; return <motion.article layout className={`destination-item ${status} ${activeTunnels[item.id] ? "active" : ""}`} key={item.id} initial={reducedMotion ? false : { opacity: 0, y: 18, rotateX: -5 }} animate={{ opacity: 1, y: 0, rotateX: 0 }} exit={{ opacity: 0, scale: .94 }} transition={{ layout: { type: "spring", stiffness: 330, damping: 30 }, delay: reducedMotion ? 0 : Math.min(index * .045, .25) }} whileHover={reducedMotion ? {} : { y: -4, rotateX: 1 }} whileTap={{ scale: .985 }}>{status === "connected" && <span className="connection-sparks" aria-hidden="true"><i /><i /><i /></span>}<button className="destination-main" onClick={() => onOpen(item)}><motion.div className="destination-icon" animate={status === "connected" && !reducedMotion ? { boxShadow: ["0 0 0 rgba(67,220,141,0)", "0 0 22px rgba(67,220,141,.22)", "0 0 0 rgba(67,220,141,0)"] } : {}} transition={{ duration: 2.2, repeat: Infinity }} >{item.resourceType === "rds" ? <Database size={22} weight="duotone" /> : <DesktopTower size={22} weight="duotone" />}</motion.div><div className="destination-copy"><div><strong>{item.label}</strong><span className={`connection-state ${status}`}><i />{statusLabel}</span></div><p>{item.endpoint}:{item.dbPort}</p><small>{type} · {item.profile} · {item.region}</small></div><span className="destination-open">{status === "connected" ? "View tunnel" : "Connect"}<ArrowSquareOut size={15} /></span></button></motion.article>; })}</AnimatePresence></motion.div>}</AnimatePresence>
   </motion.div>;
 }
 function LoadingOrb({ size = "normal" }) {
@@ -132,7 +132,7 @@ function profileStatusLabel(status) {
   return "Not checked";
 }
 
-function AccountProfileWorkspace({ account, detailMode, selectedProfile, destinations, activeTunnelId, loading, loginProfile, locale, onSelectProfile, onRefresh, onLogin, onApprove, onViewTunnel }) {
+function AccountProfileWorkspace({ account, detailMode, selectedProfile, destinations, hasActiveTunnels, loading, loginProfile, locale, onSelectProfile, onRefresh, onLogin, onApprove, onViewTunnel }) {
   const profiles = account?.profiles || [];
   const connectedProfiles = profiles.filter((profile) => profile.status === "connected");
   const accountDestinations = destinations.filter((destination) => profiles.some((profile) => profile.name === destination.profile));
@@ -146,7 +146,7 @@ function AccountProfileWorkspace({ account, detailMode, selectedProfile, destina
   return localizeNode(<>
     <header className="workspace-header section-page-header account-workspace-header">
       <div className="eyebrow"><span>→</span> {focusedProfile ? "Profile details" : "AWS account overview"}</div>
-      <div className="header-line"><div className="header-copy"><h1>{title}</h1><p><UsersThree size={16} /> {focusedProfile ? `${focusedProfile.auth} · ${focusedProfile.region}` : "Select a profile below to inspect authentication and setup."}</p></div>{activeTunnelId && <button className="secondary-action active-tunnel-link" onClick={onViewTunnel}><PlugsConnected size={17} /> View active tunnel</button>}<button className="secondary-action" onClick={onRefresh} disabled={loading}><LoadingLabel active={loading} loadingText="Checking"><ArrowsClockwise size={18} /> Check sessions</LoadingLabel></button></div>
+      <div className="header-line"><div className="header-copy"><h1>{title}</h1><p><UsersThree size={16} /> {focusedProfile ? `${focusedProfile.auth} · ${focusedProfile.region}` : "Select a profile below to inspect authentication and setup."}</p></div>{hasActiveTunnels && <button className="secondary-action active-tunnel-link" onClick={onViewTunnel}><PlugsConnected size={17} /> View active tunnel</button>}<button className="secondary-action" onClick={onRefresh} disabled={loading}><LoadingLabel active={loading} loadingText="Checking"><ArrowsClockwise size={18} /> Check sessions</LoadingLabel></button></div>
     </header>
     <div className="content-scroll account-workspace-content">
       <section className="account-overview-card">
@@ -187,9 +187,7 @@ export function App() {
   const [activeSection, setActiveSection] = useState("tunnels");
   const [port, setPort] = useState(15432);
   const [runner, setRunner] = useState("native");
-  const [tunnelState, setTunnelState] = useState("stopped");
-  const [activeTunnelId, setActiveTunnelId] = useState(null);
-  const [activeDestinationId, setActiveDestinationId] = useState(null);
+  const [activeTunnels, setActiveTunnels] = useState({});
   const [search, setSearch] = useState("");
   const [notice, setNotice] = useState("No credentials or secrets were collected or stored.");
   const [loading, setLoading] = useState(true);
@@ -257,6 +255,9 @@ export function App() {
   const selectedTarget = useMemo(() => compatibleTargets.find((item) => item.id === approval.targetId) || null, [compatibleTargets, approval.targetId]);
   const isWindows = runtime.platform === "windows";
   const pluginMissing = runtime.awsCli && !runtime.sessionManagerPlugin;
+  const activeTunnelCount = Object.keys(activeTunnels).length;
+  const activeEntry = selectedDestination ? activeTunnels[selectedDestination.id] : undefined;
+  const tunnelState = activeEntry ? "active" : "stopped";
   const destinationTitle = destination?.label?.split(" · ")[0] || "No approved destination";
   const destinationType = !destination ? "—" : destination.resourceType === "ec2" ? "EC2" : destination.resourceType === "managed_node" ? "Managed node" : "RDS";
   const guide = useMemo(() => environmentGuide(runtime, runner), [runtime, runner]);
@@ -308,14 +309,14 @@ export function App() {
   }, [activeSection, initializing, reducedMotion]);
 
   useEffect(() => {
-    if (reducedMotion || !activeDestinationId || !appRoot.current) return undefined;
+    if (reducedMotion || !activeTunnelCount || !appRoot.current) return undefined;
     const scope = createScope({ root: appRoot }).add(() => {
       createTimeline()
         .add(".approved-dock-icon", { scale: [{ to: 1.28, duration: 180 }, { to: 1, duration: 420 }], rotate: { from: "-.08turn", to: "0turn" }, ease: "out(3)" })
         .add(".connection-sparks i", { opacity: [{ from: 0, to: 1, duration: 120 }, { to: 0, duration: 380 }], y: { from: 4, to: -18 }, scale: { from: .4, to: 1.5 }, delay: stagger(75), ease: "out(4)" }, "-=330");
     });
     return () => scope.revert();
-  }, [activeDestinationId, activeSection, reducedMotion]);
+  }, [activeTunnelCount, activeSection, reducedMotion]);
 
   function addEvent(action, detail, status = "info") {
     const event = { id: `${Date.now()}-${action}`, time: new Date().toLocaleString(localeTags[locale], { hour12: false }), action, detail, status };
@@ -462,9 +463,7 @@ export function App() {
       setApprovedDestinations([]);
       setSelectedDestination(null);
       setEvents([]);
-      setTunnelState("stopped");
-      setActiveTunnelId(null);
-      setActiveDestinationId(null);
+      setActiveTunnels({});
       setApproval({ resourceId: "", targetId: "", remotePort: 22 });
       setDiscovery({ rdsEndpoints: [], ssmTargets: [] });
       setResetOpen(false);
@@ -536,17 +535,15 @@ export function App() {
     if (!isTauri()) return;
     setRemovingApproval(true);
     try {
-      if (id === activeDestinationId && activeTunnelId) {
-        await invoke("stop_tunnel", { id: activeTunnelId });
-        setActiveTunnelId(null);
-        setActiveDestinationId(null);
-        setTunnelState("stopped");
+      const entry = activeTunnels[id];
+      if (entry) {
+        await invoke("stop_tunnel", { id: entry.tunnelId });
+        setActiveTunnels((current) => { const next = { ...current }; delete next[id]; return next; });
       }
       await invoke("remove_approved_destination", { id });
       const remaining = approvedDestinations.filter((item) => item.id !== id);
       setApprovedDestinations(remaining);
-      setSelectedDestination(remaining[0] || null);
-      setTunnelState("stopped");
+      setSelectedDestination((current) => current?.id === id ? remaining[0] || null : current);
       setNotice("Destination removed from local approval.");
       addEvent("Destination removed", id, "info");
     } catch (error) { setNotice(String(error)); }
@@ -554,23 +551,20 @@ export function App() {
   }
 
   async function toggleTunnel() {
-    if (tunnelState === "active") {
-      setTunnelBusy("Closing SSM tunnel");
-      try {
-        if (isTauri() && activeTunnelId) await invoke("stop_tunnel", { id: activeTunnelId });
-        setTunnelState("stopped");
-        setActiveTunnelId(null);
-        const closedDestination = approvedDestinations.find((item) => item.id === activeDestinationId);
-        setActiveDestinationId(null);
-        setNotice("Tunnel closed. No remote connection was changed.");
-        addEvent("Tunnel closed", closedDestination?.label || "Local destination", "info");
-      } catch (error) { setNotice(`Unable to close the tunnel: ${String(error)}`); }
-      finally { setTunnelBusy(""); }
-      return;
-    }
     if (!selectedDestination) {
       openApproval();
       setNotice("First approve an AWS resource and SSM target locally.");
+      return;
+    }
+    if (activeEntry) {
+      setTunnelBusy("Closing SSM tunnel");
+      try {
+        if (isTauri()) await invoke("stop_tunnel", { id: activeEntry.tunnelId });
+        setActiveTunnels((current) => { const next = { ...current }; delete next[selectedDestination.id]; return next; });
+        setNotice("Tunnel closed. No remote connection was changed.");
+        addEvent("Tunnel closed", selectedDestination.label, "info");
+      } catch (error) { setNotice(`Unable to close the tunnel: ${String(error)}`); }
+      finally { setTunnelBusy(""); }
       return;
     }
     if (!isTauri()) {
@@ -594,10 +588,7 @@ export function App() {
         connectionMode: selectedDestination.connectionMode || "remote_host",
         runner: runnerPayload(runner),
       } });
-      setPort(active.localPort);
-      setActiveTunnelId(active.id);
-      setActiveDestinationId(selectedDestination.id);
-      setTunnelState("active");
+      setActiveTunnels((current) => ({ ...current, [selectedDestination.id]: { tunnelId: active.id, localPort: active.localPort } }));
       setNotice(`Tunnel opened at ${active.localHost}:${active.localPort}.`);
       addEvent("Tunnel opened", `${selectedDestination.label} · localhost:${active.localPort}`, "success");
     } catch (error) { setNotice(`Unable to open the tunnel: ${String(error)}`); }
@@ -623,11 +614,6 @@ export function App() {
   }, [activeLoadingMessage, initializing, runner]);
 
   async function openApproval() {
-    if (activeDestinationId) {
-      setNotice("Close the connected tunnel before approving another destination.");
-      setActiveSection("destinations");
-      return;
-    }
     if (!selectedProfile) {
       setNotice("Select an AWS profile before approving a destination.");
       return;
@@ -687,13 +673,7 @@ export function App() {
   }
 
   function openDestination(destinationToOpen) {
-    if (activeDestinationId && destinationToOpen.id !== activeDestinationId) {
-      const activeDestination = approvedDestinations.find((item) => item.id === activeDestinationId);
-      setSelectedDestination(activeDestination || destinationToOpen);
-      setNotice("Close the connected tunnel before selecting another destination.");
-    } else {
-      setSelectedDestination(destinationToOpen);
-    }
+    setSelectedDestination(destinationToOpen);
     setActiveSection("tunnels");
   }
 
@@ -710,18 +690,18 @@ export function App() {
       <div className="panel-heading"><span>AWS PROFILES</span><button className="icon-button refresh-button" onClick={refresh} aria-label={loading ? "Refreshing profiles" : "Refresh profiles"} aria-busy={loading} disabled={loading}><ArrowsClockwise className={loading ? "refresh-icon spinning" : "refresh-icon"} size={18} /></button></div>
       <label className="search-field"><ListMagnifyingGlass size={18} /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Filter profiles..." /></label>
       <div className="profile-list">{profileGroups.map((group) => { const collapsed = collapsedAccounts.has(group.key) && !search.trim(); const accountSelected = activeSection === "profiles" && selectedAccount?.key === group.key; return <section className={`account-group ${accountSelected ? "selected" : ""}`} key={group.key}><div className={`account-group-header ${accountSelected ? "selected" : ""}`}><button type="button" className="account-group-select" onClick={() => openAccount(group)}><StatusDot status={accountStatus(group.profiles)} /><span><strong>{group.accountId ? `AWS account ${group.accountId}` : "Account not identified yet"}</strong><small>{group.profiles.length} profile(s) · {group.profiles.filter((profile) => profile.status === "connected").length} connected</small></span></button><button type="button" className="account-group-toggle" onClick={() => toggleAccount(group.key)} aria-label={collapsed ? "Expand account" : "Collapse account"} aria-expanded={!collapsed}><CaretDown size={15} className={collapsed ? "account-caret collapsed" : "account-caret"} /></button></div>{!collapsed && <div className="account-profiles">{group.profiles.map((profile) => <button key={profile.name} onClick={() => openProfile(profile)} className={`profile-row ${activeSection === "profiles" && profileDetailMode === "profile" && selectedProfile?.name === profile.name ? "selected" : ""}`}><StatusDot status={profile.status} /><span><strong>{profile.name}</strong><small>{profile.auth} · {profile.region}</small></span><ArrowSquareOut size={15} className="profile-caret" /></button>)}</div>}</section>; })}{!loading && !visibleProfiles.length && <div className="empty-panel">{profiles.length ? "No profile matches the filter." : "No profile configured."}</div>}</div>
-      <motion.button className="approved-dock" onClick={() => setActiveSection("destinations")} whileHover={{ x: 3, scale: 1.01 }} whileTap={{ scale: .97 }} transition={{ type: "spring", stiffness: 380, damping: 26 }}><span className="approved-dock-icon"><ShieldCheck size={18} weight="duotone" /></span><span><strong>Approved destinations</strong><small>{approvedDestinations.length} total · {activeDestinationId ? 1 : 0} connected(s)</small></span><CaretDown size={15} /></motion.button>
+      <motion.button className="approved-dock" onClick={() => setActiveSection("destinations")} whileHover={{ x: 3, scale: 1.01 }} whileTap={{ scale: .97 }} transition={{ type: "spring", stiffness: 380, damping: 26 }}><span className="approved-dock-icon"><ShieldCheck size={18} weight="duotone" /></span><span><strong>Approved destinations</strong><small>{approvedDestinations.length} total · {activeTunnelCount} connected(s)</small></span><CaretDown size={15} /></motion.button>
       <button className="new-tunnel" onClick={openApproval} disabled={!selectedProfile || discoveryLoading}><LoadingLabel active={discoveryLoading} loadingText="Discovering resources"><PlugsConnected size={18} /> Approve resource</LoadingLabel></button>
     </section>
 
     <section className="workspace">
-      {activeSection === "tunnels" && <><header className="workspace-header"><div className="eyebrow"><span>→</span> {tunnelState === "active" ? "Active tunnel" : selectedDestination ? "Approved destination" : "New tunnel"}</div><div className="header-line"><div className="header-copy"><h1 title={destination?.label}>{destinationTitle} {selectedDestination && <span className={`state-pill ${tunnelState}`}>{tunnelState === "active" ? "ACTIVE" : "STOPPED"}</span>}</h1><p>{destination?.resourceType === "rds" ? <Database size={16} weight="fill" /> : <DesktopTower size={16} weight="fill" />} {destination ? `${destinationType} · port ${destination.dbPort} · ${destination.region} · via SSM Session Manager` : "Select a profile and approve an AWS resource."}</p></div><div className="elapsed"><small>{tunnelState === "active" ? "Local tunnel" : "Suggested port"}</small><strong>{port}</strong></div><button className={`stop-button ${tunnelState} ${pluginMissing ? "attention" : ""}`} onClick={toggleTunnel} disabled={Boolean(tunnelBusy)}><LoadingLabel active={Boolean(tunnelBusy)} loadingText={tunnelState === "active" ? "Closing" : "Opening"}>{tunnelState === "active" ? <><StopCircle size={20} weight="fill" /> Stop tunnel</> : pluginMissing && selectedDestination ? <><WarningCircle size={20} weight="fill" /> Set up plugin</> : <><PlayCircle size={20} weight="fill" /> {selectedDestination ? "Open tunnel" : "Approve destination"}</>}</LoadingLabel></button></div></header><div className="content-scroll"><section className="connection-panel"><div className="section-title"><h2>Connection parameters</h2><ShieldCheck size={19} /><span>Safe values to copy</span></div><p className="muted">Use these values in a compatible client after opening the tunnel. They identify only the local connection and do not expose credentials.</p>{pluginMissing && <div className="dependency-warning"><WarningCircle size={22} weight="fill" /><div><strong>A local dependency is missing</strong><span>Install Session Manager Plugin to enable tunnels on this computer.</span></div><button className="secondary-action compact" onClick={() => setActiveSection("settings")}>View instructions</button></div>}<div className="connection-grid"><label>Local host<div className="copy-field"><span>{tunnelState === "active" ? "localhost" : "—"}</span><button disabled={tunnelState !== "active"} onClick={() => copyText("localhost")} aria-label="Copy host"><Copy size={20} /></button></div></label><label>Local port<div className="copy-field"><span>{tunnelState === "active" ? port : "—"}</span><button disabled={tunnelState !== "active"} onClick={() => copyText(String(port))} aria-label="Copy port"><Copy size={20} /></button></div></label><label>Resource type<div className="select-field">{destination?.resourceType === "rds" ? <Database size={22} weight="duotone" /> : <DesktopTower size={22} weight="duotone" />}<span>{destinationType}</span></div></label><label>Approved destination<div className={`copy-field endpoint-display ${selectedDestination ? "" : "placeholder"}`}><span>{destination ? `${destination.endpoint}:${destination.dbPort}` : "Awaiting approval"}</span></div></label></div><div className="security-note"><ShieldCheck size={22} weight="duotone" /><span>The application neither reads nor reveals Secrets Manager values. Local approval does not replace IAM, network, operating system, or service permissions.</span></div></section><section className="activity-panel"><div className="section-title"><h2>Recent activity</h2><button className="plain-action" onClick={() => setActiveSection("history")}>View all <ArrowSquareOut size={16} /></button></div><div className="activity-list">{events.slice(0, 4).map((item) => <div className="activity-row" key={item.id}><time>{item.time}</time><StatusDot status={item.status === "success" ? "connected" : item.status === "error" ? "unavailable" : "info"} /><strong>{item.action}</strong><span>{item.detail}</span></div>)}{!events.length && <div className="empty-activity">No action was performed in this session.</div>}</div></section></div></>}
+      {activeSection === "tunnels" && <><header className="workspace-header"><div className="eyebrow"><span>→</span> {tunnelState === "active" ? "Active tunnel" : selectedDestination ? "Approved destination" : "New tunnel"}</div><div className="header-line"><div className="header-copy"><h1 title={destination?.label}>{destinationTitle} {selectedDestination && <span className={`state-pill ${tunnelState}`}>{tunnelState === "active" ? "ACTIVE" : "STOPPED"}</span>}</h1><p>{destination?.resourceType === "rds" ? <Database size={16} weight="fill" /> : <DesktopTower size={16} weight="fill" />} {destination ? `${destinationType} · port ${destination.dbPort} · ${destination.region} · via SSM Session Manager` : "Select a profile and approve an AWS resource."}</p></div><div className="elapsed"><small>{tunnelState === "active" ? "Local tunnel" : "Suggested port"}</small><strong>{tunnelState === "active" ? activeEntry.localPort : port}</strong></div><button className={`stop-button ${tunnelState} ${pluginMissing ? "attention" : ""}`} onClick={toggleTunnel} disabled={Boolean(tunnelBusy)}><LoadingLabel active={Boolean(tunnelBusy)} loadingText={tunnelState === "active" ? "Closing" : "Opening"}>{tunnelState === "active" ? <><StopCircle size={20} weight="fill" /> Stop tunnel</> : pluginMissing && selectedDestination ? <><WarningCircle size={20} weight="fill" /> Set up plugin</> : <><PlayCircle size={20} weight="fill" /> {selectedDestination ? "Open tunnel" : "Approve destination"}</>}</LoadingLabel></button></div></header><div className="content-scroll"><section className="connection-panel"><div className="section-title"><h2>Connection parameters</h2><ShieldCheck size={19} /><span>Safe values to copy</span></div><p className="muted">Use these values in a compatible client after opening the tunnel. They identify only the local connection and do not expose credentials.</p>{pluginMissing && <div className="dependency-warning"><WarningCircle size={22} weight="fill" /><div><strong>A local dependency is missing</strong><span>Install Session Manager Plugin to enable tunnels on this computer.</span></div><button className="secondary-action compact" onClick={() => setActiveSection("settings")}>View instructions</button></div>}<div className="connection-grid"><label>Local host<div className="copy-field"><span>{tunnelState === "active" ? "localhost" : "—"}</span><button disabled={tunnelState !== "active"} onClick={() => copyText("localhost")} aria-label="Copy host"><Copy size={20} /></button></div></label><label>Local port<div className="copy-field"><span>{tunnelState === "active" ? activeEntry.localPort : "—"}</span><button disabled={tunnelState !== "active"} onClick={() => copyText(String(activeEntry?.localPort))} aria-label="Copy port"><Copy size={20} /></button></div></label><label>Resource type<div className="select-field">{destination?.resourceType === "rds" ? <Database size={22} weight="duotone" /> : <DesktopTower size={22} weight="duotone" />}<span>{destinationType}</span></div></label><label>Approved destination<div className={`copy-field endpoint-display ${selectedDestination ? "" : "placeholder"}`}><span>{destination ? `${destination.endpoint}:${destination.dbPort}` : "Awaiting approval"}</span></div></label></div><div className="security-note"><ShieldCheck size={22} weight="duotone" /><span>The application neither reads nor reveals Secrets Manager values. Local approval does not replace IAM, network, operating system, or service permissions.</span></div></section><section className="activity-panel"><div className="section-title"><h2>Recent activity</h2><button className="plain-action" onClick={() => setActiveSection("history")}>View all <ArrowSquareOut size={16} /></button></div><div className="activity-list">{events.slice(0, 4).map((item) => <div className="activity-row" key={item.id}><time>{item.time}</time><StatusDot status={item.status === "success" ? "connected" : item.status === "error" ? "unavailable" : "info"} /><strong>{item.action}</strong><span>{item.detail}</span></div>)}{!events.length && <div className="empty-activity">No action was performed in this session.</div>}</div></section></div></>}
 
-      {activeSection === "destinations" && <><header className="workspace-header section-page-header destinations-header"><div className="eyebrow"><span>→</span> Access library</div><div className="header-line"><div className="header-copy"><h1>Approved destinations</h1><p><SquaresFour size={16} /> Resources available for secure connection through Session Manager.</p></div><div className="metric-chip connected-metric"><strong>{activeDestinationId ? 1 : 0}</strong><small>connected</small></div></div></header><div className="content-scroll destination-content"><DestinationLibrary destinations={approvedDestinations} activeDestinationId={activeDestinationId} profiles={profiles} viewMode={destinationView} onViewMode={setDestinationView} onOpen={openDestination} onApprove={openApproval} /></div></>}
+      {activeSection === "destinations" && <><header className="workspace-header section-page-header destinations-header"><div className="eyebrow"><span>→</span> Access library</div><div className="header-line"><div className="header-copy"><h1>Approved destinations</h1><p><SquaresFour size={16} /> Resources available for secure connection through Session Manager.</p></div><div className="metric-chip connected-metric"><strong>{activeTunnelCount}</strong><small>connected</small></div></div></header><div className="content-scroll destination-content"><DestinationLibrary destinations={approvedDestinations} activeTunnels={activeTunnels} profiles={profiles} viewMode={destinationView} onViewMode={setDestinationView} onOpen={openDestination} onApprove={openApproval} /></div></>}
 
       {activeSection === "history" && <><header className="workspace-header section-page-header"><div className="eyebrow"><span>→</span> Local audit</div><div className="header-line"><div><h1>Persistent history</h1><p><ClipboardText size={16} /> Events stored only on this computer, up to 200 records.</p></div><div className="metric-chip"><strong>{events.length}</strong><small>events</small></div></div></header><div className="content-scroll"><section className="connection-panel"><div className="section-title"><h2>Timeline</h2><span>Newest first</span></div><div className="activity-list full-history">{events.map((item) => <div className="activity-row" key={item.id}><time>{item.time}</time><StatusDot status={item.status === "success" ? "connected" : item.status === "error" ? "unavailable" : "info"} /><strong>{item.action}</strong><span>{item.detail}</span></div>)}{!events.length && <div className="empty-activity">There are no persistent events yet.</div>}</div></section></div></>}
 
-      {activeSection === "profiles" && selectedAccount && <AccountProfileWorkspace account={selectedAccount} detailMode={profileDetailMode} selectedProfile={selectedProfile} destinations={approvedDestinations} activeTunnelId={activeTunnelId} loading={loading} loginProfile={loginProfile} locale={locale} onSelectProfile={openProfile} onRefresh={refresh} onLogin={startSsoLogin} onApprove={openApproval} onViewTunnel={() => setActiveSection("tunnels")} />}
+      {activeSection === "profiles" && selectedAccount && <AccountProfileWorkspace account={selectedAccount} detailMode={profileDetailMode} selectedProfile={selectedProfile} destinations={approvedDestinations} hasActiveTunnels={activeTunnelCount > 0} loading={loading} loginProfile={loginProfile} locale={locale} onSelectProfile={openProfile} onRefresh={refresh} onLogin={startSsoLogin} onApprove={openApproval} onViewTunnel={() => setActiveSection("tunnels")} />}
       {activeSection === "profiles" && !selectedAccount && <><header className="workspace-header section-page-header"><div className="eyebrow"><span>→</span> AWS authentication</div><div className="header-line"><div className="header-copy"><h1>Configure AWS access</h1><p><UsersThree size={16} /> Add an AWS CLI profile, authenticate it, and then approve a resource.</p></div><button className="secondary-action" onClick={refresh} disabled={loading}><LoadingLabel active={loading} loadingText="Checking"><ArrowsClockwise size={18} /> Check sessions</LoadingLabel></button></div></header><div className="content-scroll"><section className="setup-path-card empty-account-setup"><div className="section-title"><h2>Start here</h2><span>Three steps</span></div><div className="setup-path"><article className="setup-step next"><span>1</span><div><small>PROFILE</small><strong>Configure AWS CLI</strong><p>Run `aws configure sso` in a terminal and return here.</p></div><TerminalWindow size={22} /></article><article className="setup-step"><span>2</span><div><small>AUTHENTICATION</small><strong>Connect the SSO session</strong><p>Use the profile action to open AWS authentication.</p></div><UsersThree size={22} /></article><article className="setup-step"><span>3</span><div><small>RESOURCE ACCESS</small><strong>Approve a resource</strong><p>Discover visible RDS, EC2, and managed nodes.</p></div><ShieldCheck size={22} /></article></div><div className="profile-command standalone"><span>Configure the first profile</span><code>aws configure sso</code><button type="button" onClick={() => copyText("aws configure sso")} aria-label="Copy AWS configure SSO command"><Copy size={16} /></button></div></section></div></>}
 
       {activeSection === "settings" && <><header className="workspace-header section-page-header"><div className="eyebrow"><span>→</span> Local environment</div><div className="header-line"><div className="header-copy"><h1>Settings</h1><p><GearSix size={16} /> Dependencies, runner, and data persisted on this computer.</p></div><button className="secondary-action" onClick={loadInitialState} disabled={loading}><LoadingLabel active={loading} loadingText="Refreshing"><ArrowsClockwise size={18} /> Refresh diagnostics</LoadingLabel></button></div></header><div className="content-scroll"><div className="settings-grid"><section className="settings-card"><small>PLATFORM</small><strong>{runtime.platform || "Detecting…"}</strong><span>{isWindows ? "Windows with native and WSL runner support." : "AWS CLI runs directly on the system."}</span></section><section className="settings-card"><small>AWS CLI</small><strong>{runtime.awsCli ? "Available" : "Not found"}</strong><span>Required for SSO, resource discovery, and SSM sessions.</span></section><section className={`settings-card ${pluginMissing ? "warning" : ""}`}><small>SESSION MANAGER</small><strong>{runtime.sessionManagerPlugin ? "Available" : "Not found"}</strong><span>{runtime.sessionManagerPlugin ? "Ready to start SSM sessions through AWS CLI." : "The check runs at startup. Installation proceeds only with consent and system authentication."}</span>{pluginMissing && <button className="secondary-action dependency-action" onClick={installSessionManagerPlugin} disabled={installingPlugin}><LoadingLabel active={installingPlugin} loadingText="Installing"><DownloadSimple size={17} /> Install component</LoadingLabel></button>}</section><section className="settings-card"><small>LOCAL PORT</small><strong>{port}</strong><span>Automatically selected in the 15432–15531 range.</span></section><section className="settings-card"><small>LOCAL HISTORY</small><strong>{events.length} event(s)</strong><span>Stored only on this computer, limited to the 200 most recent records.</span></section><section className="settings-card"><small>TUTORIAL</small><strong>Getting started</strong><span>Replay the short walkthrough of profiles, destinations, and tunnels.</span><button className="secondary-action" onClick={openTour}><Compass size={17} /> Show tutorial</button></section><section className="settings-card danger"><small>RESET ZONE</small><strong>Start over</strong><span>Closes tunnels and removes approved destinations and history. AWS CLI profiles are not changed.</span><button className="danger-action" onClick={() => setResetOpen(true)}><Trash size={17} /> Clear local data</button></section>{isWindows && <section className="settings-card wide"><small>WINDOWS RUNNER</small><div className="runner-select settings-runner"><select value={runner} onChange={(event) => chooseRunner(event.target.value)} disabled={runnerLoading}><option value="native">Native Windows</option>{runtime.wsl?.map((item) => <option key={item.name} value={item.name}>{item.name} · WSL{item.version}</option>)}</select><CaretDown size={16} /></div><span>{runnerLoading ? <><LoadingOrb size="small" /> Validating dependencies and an available port…</> : "CLI and Session Manager Plugin must exist in the selected runner."}</span></section>}</div></div></>}

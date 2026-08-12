@@ -18,6 +18,7 @@ The project is open source and designed for cloud engineers, developers, databas
 - Discovers visible RDS endpoints, EC2 instances, and Systems Manager managed nodes.
 - Requires explicit local approval before a discovered destination can be used.
 - Suggests an available local port from `15432` through `15531` and validates it again before opening a tunnel.
+- Supports multiple concurrent tunnels, including several resources from the same AWS account: approving or connecting one destination never blocks another, and each tunnel gets its own automatically chosen local port.
 - Supports the native AWS CLI on Windows, macOS, and Linux, plus WSL1 and WSL2 on Windows.
 - Keeps a bounded local activity history without storing AWS credentials.
 - Presents the interface in English, Portuguese, or Spanish based on the operating-system locale, with English as the fallback.
