@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256" role="img" aria-label="AWS Tunnel Desk logo">
+  <title>AWS Tunnel Desk</title>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#0A2338" />
+      <stop offset="1" stop-color="#03111F" />
+    </linearGradient>
+    <radialGradient id="innerGlow" cx="50%" cy="42%" r="55%">
+      <stop offset="0" stop-color="#2D96BE" stop-opacity="0.28" />
+      <stop offset="1" stop-color="#2D96BE" stop-opacity="0" />
+    </radialGradient>
+    <filter id="ringGlow" x="-60%" y="-60%" width="220%" height="220%">
+      <feGaussianBlur stdDeviation="7" />
+    </filter>
+  </defs>
+
+  <rect x="0" y="0" width="256" height="256" rx="57.6" fill="url(#bg)" />
+  <rect x="0" y="0" width="256" height="256" rx="57.6" fill="url(#innerGlow)" />
+
+  <circle cx="128" cy="139.5" r="51.2" fill="#2EC9EF" filter="url(#ringGlow)" opacity="0.9" />
+  <circle cx="128" cy="139.5" r="51.2" fill="#2EC9EF" />
+  <circle cx="128" cy="139.5" r="35.84" fill="#061A2B" />
+  <circle cx="128" cy="139.5" r="20.48" fill="#9FEEFD" />
+  <circle cx="128" cy="139.5" r="11.26" fill="#E6FCFF" />
+
+  <g fill="#E9F9FF">
+    <circle cx="105.47" cy="94.46" r="12.8" />
+    <circle cx="120.83" cy="85.76" r="16.9" />
+    <circle cx="139.78" cy="88.83" r="14.85" />
+    <circle cx="155.65" cy="94.98" r="11.26" />
+    <rect x="91.52" y="89.09" width="72.96" height="14.85" rx="7.42" />
+  </g>
+</svg>
