@@ -20,6 +20,7 @@ const phrases = {
   "Removing local approval": ["Removendo aprovação local","Eliminando aprobación local"],
   "Preparing Session Manager Plugin": ["Preparando Session Manager Plugin","Preparando Session Manager Plugin"],
   "Clearing local data": ["Limpando dados locais","Limpiando datos locales"],
+  "Clearing": ["Limpando","Limpiando"],
   "This profile's SSO session has expired. Reconnect it and try again.": ["A sessão SSO deste perfil expirou. Reconecte o perfil e tente novamente.","La sesión SSO de este perfil expiró. Vuelva a conectarlo e inténtelo nuevamente."],
   "AWS CLI did not return failure details.": ["O AWS CLI não retornou detalhes sobre a falha.","AWS CLI no devolvió detalles del error."],
   "Open the desktop app to inspect profiles configured on this machine.": ["Abra pelo aplicativo desktop para consultar os perfis configurados nesta máquina.","Abra la aplicación de escritorio para consultar los perfiles configurados en este equipo."],
