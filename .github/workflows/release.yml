@@ -53,7 +53,7 @@ jobs:
         shell: bash
         run: |
           if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
-            draft_state="$(gh api "repos/${GITHUB_REPOSITORY}/releases/tags/${RELEASE_TAG}" --jq .draft)"
+            draft_state="$(gh release view "$RELEASE_TAG" --json isDraft --jq .isDraft)"
             if [[ "$draft_state" != "true" ]]; then
               echo "Release $RELEASE_TAG already exists and is not a draft." >&2
               exit 1
