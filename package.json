@@ -21,7 +21,7 @@
     "motion": "^13.0.0",
     "react": "19.2.8",
     "react-dom": "19.2.8",
-    "vite": "6.4.2"
+    "vite": "8.2.1"
   },
   "devDependencies": {
     "@tauri-apps/cli": "^2.11.4"
