@@ -43,10 +43,12 @@ Tagged releases are built natively by GitHub Actions:
 | Platform | Package | Architecture |
 | --- | --- | --- |
 | Windows | `.msi` | x86-64, ARM64 |
-| macOS | `.dmg` | Apple Silicon (ARM64), Intel (x86-64) |
+| macOS | `.dmg` | Apple Silicon (ARM64) |
 | Debian and Ubuntu | `.deb` | x86-64, ARM64 |
 | Fedora, RHEL, and compatible systems | `.rpm` | x86-64, ARM64 |
 | Other compatible Linux distributions | `.AppImage` | x86-64, ARM64 |
+
+An Intel macOS build is not currently produced: GitHub's hosted `macos-13` runners have repeatedly queued for over an hour, which made that leg of the release pipeline unreliable. Contributions restoring an Intel build (for example by cross-compiling from an Apple Silicon runner) are welcome.
 
 The macOS artifact is ad-hoc signed unless the repository maintainers configure Apple signing and notarization secrets. The Windows installer is also unsigned until the project configures an Authenticode certificate. Operating systems may display security warnings for these community builds. Production maintainers should configure platform signing before announcing a generally available release; signing credentials must be stored only as protected GitHub secrets.
 
