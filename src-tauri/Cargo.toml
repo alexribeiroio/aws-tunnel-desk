@@ -1,6 +1,6 @@
 [package]
 name = "aws-tunnel-desk"
-version = "0.2.1"
+version = "0.2.2"
 description = "A secure cross-platform manager for AWS Systems Manager tunnels"
 authors = ["AWS Tunnel Desk contributors"]
 license = "Apache-2.0"
