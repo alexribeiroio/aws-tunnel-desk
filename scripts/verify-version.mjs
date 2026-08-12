@@ -28,7 +28,9 @@ if (uniqueVersions.size !== 1) {
 }
 
 const version = packageJson.version;
-const releaseTag = process.env.RELEASE_TAG || process.env.GITHUB_REF_NAME;
+const refName = process.env.GITHUB_REF_NAME;
+const refLooksLikeVersionTag = typeof refName === "string" && /^v\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/.test(refName);
+const releaseTag = process.env.RELEASE_TAG || (refLooksLikeVersionTag ? refName : undefined);
 if (releaseTag && releaseTag !== `v${version}`) {
   throw new Error(`Release tag ${releaseTag} does not match source version v${version}.`);
 }
