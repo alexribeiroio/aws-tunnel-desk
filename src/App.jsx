@@ -2,14 +2,19 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { createScope, createTimeline, stagger } from "animejs";
 import { AnimatePresence, MotionConfig, motion, useReducedMotion } from "motion/react";
+import { ACCOUNT_CHECK_INTERVAL_MS, accountCheckIsDue } from "./accountRefresh";
 import { getInitialLocale, localeTags, localizeNode, translateText } from "./i18n";
+import { markOnboardingSeen, onboardingIsDue, onboardingSteps } from "./onboarding";
 import {
   ArrowSquareOut,
   ArrowsClockwise,
   CaretDown,
+  CaretLeft,
+  CaretRight,
   CheckCircle,
   ClipboardText,
   Cloud,
+  Compass,
   Copy,
   Database,
   DesktopTower,
@@ -29,6 +34,21 @@ import {
   WarningCircle,
   X,
 } from "@phosphor-icons/react";
+
+const tourIcons = { Cloud, UsersThree, ShieldCheck, PlugsConnected, ClipboardText };
+
+function OnboardingTour({ step, total, current, locale, onNext, onBack, onSkip, onFinish }) {
+  const Icon = tourIcons[step.icon] || Compass;
+  const isLast = current === total - 1;
+  return localizeNode(<div className="approval-overlay tour-overlay" role="dialog" aria-modal="true" aria-label="AWS Tunnel Desk tutorial">
+    <div className="approval-dialog compact-dialog tour-dialog">
+      <div className="dialog-heading"><div><span>GETTING STARTED</span><h2>{step.title}</h2></div><button type="button" className="icon-button" onClick={onSkip} aria-label="Skip tutorial"><X size={20} /></button></div>
+      <div className="tour-body"><div className="tour-icon"><Icon size={30} weight="duotone" /></div><p>{step.description}</p></div>
+      <div className="tour-progress" role="progressbar" aria-valuenow={current + 1} aria-valuemin={1} aria-valuemax={total}>{Array.from({ length: total }).map((_, index) => <span key={index} className={index === current ? "active" : index < current ? "done" : ""} />)}</div>
+      <div className="dialog-actions tour-actions"><span className="tour-count">{`Step ${current + 1} of ${total}`}</span>{current > 0 && <button type="button" className="secondary-action" onClick={onBack}><CaretLeft size={16} /> Back</button>}{!isLast && <button type="button" className="secondary-action" onClick={onSkip}>Skip</button>}<button type="button" className="approve-button" onClick={isLast ? onFinish : onNext}>{isLast ? <>Start using it <CheckCircle size={18} weight="fill" /></> : <>Next <CaretRight size={16} /></>}</button></div>
+    </div>
+  </div>, locale);
+}
 
 const isTauri = () => typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
 const runnerPayload = (runner) => runner === "native" ? { kind: "native" } : { kind: "wsl", distribution: runner };
@@ -158,6 +178,8 @@ function CommandRow({ locale, label, command }) {
 
 export function App() {
   const appRoot = useRef(null);
+  const accountCheckInFlight = useRef(false);
+  const lastAccountCheckAt = useRef(0);
   const reducedMotion = useReducedMotion();
   const [locale, setLocale] = useState(getInitialLocale);
   const [profiles, setProfiles] = useState([]);
@@ -197,6 +219,8 @@ export function App() {
   const [destinationView, setDestinationView] = useState(getInitialDestinationView);
   const [selectedAccountKey, setSelectedAccountKey] = useState(null);
   const [profileDetailMode, setProfileDetailMode] = useState("account");
+  const [tourOpen, setTourOpen] = useState(false);
+  const [tourStep, setTourStep] = useState(0);
 
   const visibleProfiles = useMemo(() => profiles.filter((profile) => profile.name.toLowerCase().includes(search.toLowerCase())), [profiles, search]);
   const profileGroups = useMemo(() => {
@@ -248,6 +272,24 @@ export function App() {
   useEffect(() => {
     localStorage.setItem("aws-tunnel-desk.destination-view", destinationView);
   }, [destinationView]);
+
+  useEffect(() => {
+    if (initializing || checkupOpen) return;
+    if (onboardingIsDue()) {
+      setTourStep(0);
+      setTourOpen(true);
+    }
+  }, [checkupOpen, initializing]);
+
+  function openTour() {
+    setTourStep(0);
+    setTourOpen(true);
+  }
+
+  function closeTour() {
+    markOnboardingSeen();
+    setTourOpen(false);
+  }
 
   useEffect(() => {
     const content = appRoot.current?.querySelector(".content-scroll");
@@ -328,7 +370,7 @@ export function App() {
       const results = await Promise.allSettled([
         invoke("system_status"),
         invoke("runner_status", { runner: runnerPayload(runner) }),
-        invoke("list_configured_profiles"),
+        invoke("discover_profiles"),
         invoke("list_approved_destinations"),
         invoke("suggest_local_port", { runner: runnerPayload(runner) }),
         invoke("list_activity_events"),
@@ -348,6 +390,7 @@ export function App() {
       setPort(suggested.port);
       setPortReady(results[4].status === "fulfilled");
       setEvents(persistedEvents);
+      lastAccountCheckAt.current = Date.now();
       setNotice(configured.length ? "Checkup complete. Configured profiles were loaded." : "Checkup complete with items that require setup.");
       addEvent("Environment checkup", `${configured.length} configured profile(s)`, executorStatus.awsCli && executorStatus.sessionManagerPlugin ? "success" : "info");
     } catch (error) {
@@ -359,26 +402,37 @@ export function App() {
     }
   }
 
-  async function refresh() {
+  async function refresh(options = {}) {
+    const background = options?.background === true;
     if (!isTauri()) {
-      setNotice("Open the desktop app to check AWS sessions.");
+      if (!background) setNotice("Open the desktop app to check AWS sessions.");
       return;
     }
-    setLoadingMessage("Checking AWS profiles and sessions");
-    setLoading(true);
+    if (accountCheckInFlight.current) return;
+    accountCheckInFlight.current = true;
+    if (!background) {
+      setLoadingMessage("Checking AWS profiles and sessions");
+      setLoading(true);
+    }
     try {
       const [system, executorStatus, discovered, approved] = await Promise.all([invoke("system_status"), invoke("runner_status", { runner: runnerPayload(runner) }), invoke("discover_profiles"), invoke("list_approved_destinations")]);
       setRuntime({ ...system, ...executorStatus });
       updateProfiles(discovered);
       setApprovedDestinations(approved);
       setSelectedDestination((current) => approved.find((item) => item.id === current?.id) || approved[0] || null);
-      setNotice("AWS sessions checked. No tunnel was opened.");
-      addEvent("Sessions checked", `${discovered.filter((item) => item.status === "connected").length} connected profile(s)`, "success");
+      if (!background) {
+        setNotice("AWS sessions checked. No tunnel was opened.");
+        addEvent("Sessions checked", `${discovered.filter((item) => item.status === "connected").length} connected profile(s)`, "success");
+      }
     } catch (error) {
-      setNotice(`Unable to check the environment: ${String(error)}`);
-      addEvent("Failed to check sessions", String(error), "error");
+      if (!background) {
+        setNotice(`Unable to check the environment: ${String(error)}`);
+        addEvent("Failed to check sessions", String(error), "error");
+      }
     } finally {
-      setLoading(false);
+      lastAccountCheckAt.current = Date.now();
+      accountCheckInFlight.current = false;
+      if (!background) setLoading(false);
     }
   }
 
@@ -552,6 +606,22 @@ export function App() {
 
   useEffect(() => { loadInitialState(); }, []);
 
+  useEffect(() => {
+    if (initializing || !isTauri()) return undefined;
+
+    const runAutomaticCheck = () => {
+      if (document.visibilityState !== "visible" || activeLoadingMessage) return;
+      if (accountCheckIsDue(lastAccountCheckAt.current)) refresh({ background: true });
+    };
+
+    const interval = window.setInterval(runAutomaticCheck, ACCOUNT_CHECK_INTERVAL_MS);
+    document.addEventListener("visibilitychange", runAutomaticCheck);
+    return () => {
+      window.clearInterval(interval);
+      document.removeEventListener("visibilitychange", runAutomaticCheck);
+    };
+  }, [activeLoadingMessage, initializing, runner]);
+
   async function openApproval() {
     if (activeDestinationId) {
       setNotice("Close the connected tunnel before approving another destination.");
@@ -654,10 +724,12 @@ export function App() {
       {activeSection === "profiles" && selectedAccount && <AccountProfileWorkspace account={selectedAccount} detailMode={profileDetailMode} selectedProfile={selectedProfile} destinations={approvedDestinations} activeTunnelId={activeTunnelId} loading={loading} loginProfile={loginProfile} locale={locale} onSelectProfile={openProfile} onRefresh={refresh} onLogin={startSsoLogin} onApprove={openApproval} onViewTunnel={() => setActiveSection("tunnels")} />}
       {activeSection === "profiles" && !selectedAccount && <><header className="workspace-header section-page-header"><div className="eyebrow"><span>→</span> AWS authentication</div><div className="header-line"><div className="header-copy"><h1>Configure AWS access</h1><p><UsersThree size={16} /> Add an AWS CLI profile, authenticate it, and then approve a resource.</p></div><button className="secondary-action" onClick={refresh} disabled={loading}><LoadingLabel active={loading} loadingText="Checking"><ArrowsClockwise size={18} /> Check sessions</LoadingLabel></button></div></header><div className="content-scroll"><section className="setup-path-card empty-account-setup"><div className="section-title"><h2>Start here</h2><span>Three steps</span></div><div className="setup-path"><article className="setup-step next"><span>1</span><div><small>PROFILE</small><strong>Configure AWS CLI</strong><p>Run `aws configure sso` in a terminal and return here.</p></div><TerminalWindow size={22} /></article><article className="setup-step"><span>2</span><div><small>AUTHENTICATION</small><strong>Connect the SSO session</strong><p>Use the profile action to open AWS authentication.</p></div><UsersThree size={22} /></article><article className="setup-step"><span>3</span><div><small>RESOURCE ACCESS</small><strong>Approve a resource</strong><p>Discover visible RDS, EC2, and managed nodes.</p></div><ShieldCheck size={22} /></article></div><div className="profile-command standalone"><span>Configure the first profile</span><code>aws configure sso</code><button type="button" onClick={() => copyText("aws configure sso")} aria-label="Copy AWS configure SSO command"><Copy size={16} /></button></div></section></div></>}
 
-      {activeSection === "settings" && <><header className="workspace-header section-page-header"><div className="eyebrow"><span>→</span> Local environment</div><div className="header-line"><div className="header-copy"><h1>Settings</h1><p><GearSix size={16} /> Dependencies, runner, and data persisted on this computer.</p></div><button className="secondary-action" onClick={loadInitialState} disabled={loading}><LoadingLabel active={loading} loadingText="Refreshing"><ArrowsClockwise size={18} /> Refresh diagnostics</LoadingLabel></button></div></header><div className="content-scroll"><div className="settings-grid"><section className="settings-card"><small>PLATFORM</small><strong>{runtime.platform || "Detecting…"}</strong><span>{isWindows ? "Windows with native and WSL runner support." : "AWS CLI runs directly on the system."}</span></section><section className="settings-card"><small>AWS CLI</small><strong>{runtime.awsCli ? "Available" : "Not found"}</strong><span>Required for SSO, resource discovery, and SSM sessions.</span></section><section className={`settings-card ${pluginMissing ? "warning" : ""}`}><small>SESSION MANAGER</small><strong>{runtime.sessionManagerPlugin ? "Available" : "Not found"}</strong><span>{runtime.sessionManagerPlugin ? "Ready to start SSM sessions through AWS CLI." : "The check runs at startup. Installation proceeds only with consent and system authentication."}</span>{pluginMissing && <button className="secondary-action dependency-action" onClick={installSessionManagerPlugin} disabled={installingPlugin}><LoadingLabel active={installingPlugin} loadingText="Installing"><DownloadSimple size={17} /> Install component</LoadingLabel></button>}</section><section className="settings-card"><small>LOCAL PORT</small><strong>{port}</strong><span>Automatically selected in the 15432–15531 range.</span></section><section className="settings-card"><small>LOCAL HISTORY</small><strong>{events.length} event(s)</strong><span>Stored only on this computer, limited to the 200 most recent records.</span></section><section className="settings-card danger"><small>RESET ZONE</small><strong>Start over</strong><span>Closes tunnels and removes approved destinations and history. AWS CLI profiles are not changed.</span><button className="danger-action" onClick={() => setResetOpen(true)}><Trash size={17} /> Clear local data</button></section>{isWindows && <section className="settings-card wide"><small>WINDOWS RUNNER</small><div className="runner-select settings-runner"><select value={runner} onChange={(event) => chooseRunner(event.target.value)} disabled={runnerLoading}><option value="native">Native Windows</option>{runtime.wsl?.map((item) => <option key={item.name} value={item.name}>{item.name} · WSL{item.version}</option>)}</select><CaretDown size={16} /></div><span>{runnerLoading ? <><LoadingOrb size="small" /> Validating dependencies and an available port…</> : "CLI and Session Manager Plugin must exist in the selected runner."}</span></section>}</div></div></>}
+      {activeSection === "settings" && <><header className="workspace-header section-page-header"><div className="eyebrow"><span>→</span> Local environment</div><div className="header-line"><div className="header-copy"><h1>Settings</h1><p><GearSix size={16} /> Dependencies, runner, and data persisted on this computer.</p></div><button className="secondary-action" onClick={loadInitialState} disabled={loading}><LoadingLabel active={loading} loadingText="Refreshing"><ArrowsClockwise size={18} /> Refresh diagnostics</LoadingLabel></button></div></header><div className="content-scroll"><div className="settings-grid"><section className="settings-card"><small>PLATFORM</small><strong>{runtime.platform || "Detecting…"}</strong><span>{isWindows ? "Windows with native and WSL runner support." : "AWS CLI runs directly on the system."}</span></section><section className="settings-card"><small>AWS CLI</small><strong>{runtime.awsCli ? "Available" : "Not found"}</strong><span>Required for SSO, resource discovery, and SSM sessions.</span></section><section className={`settings-card ${pluginMissing ? "warning" : ""}`}><small>SESSION MANAGER</small><strong>{runtime.sessionManagerPlugin ? "Available" : "Not found"}</strong><span>{runtime.sessionManagerPlugin ? "Ready to start SSM sessions through AWS CLI." : "The check runs at startup. Installation proceeds only with consent and system authentication."}</span>{pluginMissing && <button className="secondary-action dependency-action" onClick={installSessionManagerPlugin} disabled={installingPlugin}><LoadingLabel active={installingPlugin} loadingText="Installing"><DownloadSimple size={17} /> Install component</LoadingLabel></button>}</section><section className="settings-card"><small>LOCAL PORT</small><strong>{port}</strong><span>Automatically selected in the 15432–15531 range.</span></section><section className="settings-card"><small>LOCAL HISTORY</small><strong>{events.length} event(s)</strong><span>Stored only on this computer, limited to the 200 most recent records.</span></section><section className="settings-card"><small>TUTORIAL</small><strong>Getting started</strong><span>Replay the short walkthrough of profiles, destinations, and tunnels.</span><button className="secondary-action" onClick={openTour}><Compass size={17} /> Show tutorial</button></section><section className="settings-card danger"><small>RESET ZONE</small><strong>Start over</strong><span>Closes tunnels and removes approved destinations and history. AWS CLI profiles are not changed.</span><button className="danger-action" onClick={() => setResetOpen(true)}><Trash size={17} /> Clear local data</button></section>{isWindows && <section className="settings-card wide"><small>WINDOWS RUNNER</small><div className="runner-select settings-runner"><select value={runner} onChange={(event) => chooseRunner(event.target.value)} disabled={runnerLoading}><option value="native">Native Windows</option>{runtime.wsl?.map((item) => <option key={item.name} value={item.name}>{item.name} · WSL{item.version}</option>)}</select><CaretDown size={16} /></div><span>{runnerLoading ? <><LoadingOrb size="small" /> Validating dependencies and an available port…</> : "CLI and Session Manager Plugin must exist in the selected runner."}</span></section>}</div></div></>}
 
       <footer className="workspace-footer"><span><ShieldCheck size={18} /> {notice}</span><button className="help-link" onClick={() => setNotice(isWindows ? "Install AWS CLI and session-manager-plugin in the selected runner. For WSL, install both inside the distribution." : "Install AWS CLI and session-manager-plugin on the system. The plugin is required only when opening tunnels.")}><WarningCircle size={18} /> Help</button></footer>
     </section>
+
+    {tourOpen && !checkupOpen && !initializing && <OnboardingTour step={onboardingSteps[tourStep]} total={onboardingSteps.length} current={tourStep} locale={locale} onNext={() => setTourStep((step) => Math.min(step + 1, onboardingSteps.length - 1))} onBack={() => setTourStep((step) => Math.max(step - 1, 0))} onSkip={closeTour} onFinish={closeTour} />}
 
     {checkupOpen && !initializing && <div className="checkup-overlay" role="dialog" aria-modal="true" aria-label="Environment checkup"><section className="checkup-window">
       <header className="checkup-header"><div className="checkup-brand"><span><Cloud size={25} weight="duotone" /></span><div><small>ENVIRONMENT PRE-FLIGHT</small><strong>AWS Tunnel Desk</strong></div></div><div className="checkup-header-actions"><LanguagePicker locale={locale} onChange={setLocale} compact /><div className={`checkup-score ${checkupReady ? "ready" : "attention"}`}><span>{checkupCount}/3</span><small>{checkupReady ? "READY TO USE" : "ITEMS COMPLETE"}</small></div></div></header>

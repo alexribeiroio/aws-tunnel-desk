@@ -315,6 +315,26 @@ const phrases = {
   "Discover visible RDS, EC2, and managed nodes.": ["Descubra RDS, EC2 e nós gerenciados visíveis.","Descubra RDS, EC2 y nodos administrados visibles."],
   "Configure the first profile": ["Configurar o primeiro perfil","Configurar el primer perfil"],
   "Copy AWS configure SSO command": ["Copiar comando de configuração SSO da AWS","Copiar comando de configuración SSO de AWS"],
+  "GETTING STARTED": ["PRIMEIROS PASSOS","PRIMEROS PASOS"],
+  "Skip tutorial": ["Pular tutorial","Omitir tutorial"],
+  "Welcome to AWS Tunnel Desk": ["Bem-vindo ao AWS Tunnel Desk","Bienvenido a AWS Tunnel Desk"],
+  "Open secure SSM port-forwarding tunnels to RDS, EC2, and managed nodes without ever touching AWS credentials or secrets.": ["Abra túneis seguros de encaminhamento de porta via SSM para RDS, EC2 e nós gerenciados sem nunca lidar com credenciais ou segredos da AWS.","Abra túneles seguros de reenvío de puertos vía SSM hacia RDS, EC2 y nodos administrados sin manipular nunca credenciales ni secretos de AWS."],
+  "Connect your AWS CLI profiles": ["Conecte seus perfis do AWS CLI","Conecte sus perfiles de AWS CLI"],
+  "The SSO profiles section lists profiles already configured with AWS CLI. Select one and connect its SSO session before discovering resources.": ["A seção Perfis SSO lista os perfis já configurados no AWS CLI. Selecione um e conecte a sessão SSO antes de descobrir recursos.","La sección Perfiles SSO lista los perfiles ya configurados en AWS CLI. Seleccione uno y conecte su sesión SSO antes de descubrir recursos."],
+  "Approve a destination": ["Aprove um destino","Apruebe un destino"],
+  "Use Approve resource to discover RDS endpoints, EC2 instances, and managed nodes visible to a connected profile. Endpoints can't be typed manually.": ["Use Aprovar recurso para descobrir endpoints RDS, instâncias EC2 e nós gerenciados visíveis por um perfil conectado. Endpoints não podem ser digitados manualmente.","Use Aprobar recurso para descubrir endpoints RDS, instancias EC2 y nodos administrados visibles para un perfil conectado. Los endpoints no se pueden escribir manualmente."],
+  "Open the tunnel": ["Abra o túnel","Abra el túnel"],
+  "Open an approved destination from Tunnels to start an SSM Session Manager tunnel, then copy the local host and port into your client.": ["Abra um destino aprovado em Túneis para iniciar um túnel via SSM Session Manager e copie o host e a porta locais para seu cliente.","Abra un destino aprobado en Túneles para iniciar un túnel vía SSM Session Manager y copie el host y el puerto locales en su cliente."],
+  "Everything stays local": ["Tudo permanece local","Todo permanece local"],
+  "Approved destinations and activity history are stored only on this computer. Revisit this tutorial anytime from Settings.": ["Destinos aprovados e o histórico de atividade são armazenados somente neste computador. Reveja este tutorial a qualquer momento em Configurações.","Los destinos aprobados y el historial de actividad se almacenan únicamente en este equipo. Vuelva a ver este tutorial cuando quiera desde Configuración."],
+  "Back": ["Voltar","Atrás"],
+  "Skip": ["Pular","Omitir"],
+  "Start using it": ["Começar a usar","Empezar a usar"],
+  "Next": ["Próximo","Siguiente"],
+  "TUTORIAL": ["TUTORIAL","TUTORIAL"],
+  "Getting started": ["Primeiros passos","Primeros pasos"],
+  "Replay the short walkthrough of profiles, destinations, and tunnels.": ["Reveja o passo a passo rápido sobre perfis, destinos e túneis.","Vuelva a ver el recorrido rápido sobre perfiles, destinos y túneles."],
+  "Show tutorial": ["Mostrar tutorial","Mostrar tutorial"],
 };
 
 const catalogs = { pt: {}, en: {}, es: {} };
@@ -350,6 +370,7 @@ const patterns = [
   [/^(\d+) of (\d+) profiles connected$/, "$1 de $2 perfis conectados", "$1 de $2 perfiles conectados"],
   [/^(\d+) profile\(s\) found for this account\.$/, "$1 perfil(is) encontrado(s) para esta conta.", "$1 perfil(es) encontrado(s) para esta cuenta."],
   [/^(\d+) resource\(s\) ready for tunnel selection\.$/, "$1 recurso(s) pronto(s) para selecionar o túnel.", "$1 recurso(s) listo(s) para seleccionar el túnel."],
+  [/^Step (\d+) of (\d+)$/, "Etapa $1 de $2", "Paso $1 de $2"],
 ];
 
 export function getInitialLocale() {
