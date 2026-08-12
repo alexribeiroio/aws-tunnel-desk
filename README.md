@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="docs/brand/logo.svg" alt="AWS Tunnel Desk logo" width="128" height="128">
+</p>
+
 # AWS Tunnel Desk
 
 AWS Tunnel Desk is a cross-platform desktop application for discovering AWS CLI profiles, checking AWS IAM Identity Center (SSO) sessions, and managing local tunnels to AWS resources through AWS Systems Manager Session Manager.
@@ -17,6 +21,7 @@ The project is open source and designed for cloud engineers, developers, databas
 - Supports the native AWS CLI on Windows, macOS, and Linux, plus WSL1 and WSL2 on Windows.
 - Keeps a bounded local activity history without storing AWS credentials.
 - Presents the interface in English, Portuguese, or Spanish based on the operating-system locale, with English as the fallback.
+- Runs from a system tray icon: closing the window keeps the app and any active tunnel running in the background, ready to reopen from the tray.
 
 ## Security model
 
@@ -36,11 +41,11 @@ Tagged releases are built natively by GitHub Actions:
 
 | Platform | Package | Architecture |
 | --- | --- | --- |
-| Windows | `.msi` | x86-64 |
-| macOS | `.dmg` | Universal (Apple Silicon and Intel) |
-| Debian and Ubuntu | `.deb` | x86-64 |
-| Fedora, RHEL, and compatible systems | `.rpm` | x86-64 |
-| Other compatible Linux distributions | `.AppImage` | x86-64 |
+| Windows | `.msi` | x86-64, ARM64 |
+| macOS | `.dmg` | Apple Silicon (ARM64), Intel (x86-64) |
+| Debian and Ubuntu | `.deb` | x86-64, ARM64 |
+| Fedora, RHEL, and compatible systems | `.rpm` | x86-64, ARM64 |
+| Other compatible Linux distributions | `.AppImage` | x86-64, ARM64 |
 
 The macOS artifact is ad-hoc signed unless the repository maintainers configure Apple signing and notarization secrets. The Windows installer is also unsigned until the project configures an Authenticode certificate. Operating systems may display security warnings for these community builds. Production maintainers should configure platform signing before announcing a generally available release; signing credentials must be stored only as protected GitHub secrets.
 
