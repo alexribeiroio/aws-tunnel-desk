@@ -15,6 +15,7 @@ This document records the reusable design acceptance criteria. It intentionally 
 
 - Starting and stopping a tunnel updates the process state and visible controls.
 - Closing a tunnel terminates the managed Session Manager process and verifies that the local listener is no longer owned by the application.
+- Closing the main window hides it instead of exiting the application; the tray icon remains available and any active tunnel keeps running. "Show" from the tray menu (or a left click) restores the window; "Quit" from the tray menu exits the application and stops managed tunnels.
 - Profile filtering and account collapsing work with keyboard and pointer input.
 - Destination approval accepts only resources discovered by the selected AWS profile.
 - The environment pre-flight explains missing dependencies for the active operating system and runner.
